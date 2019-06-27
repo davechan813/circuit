@@ -153,29 +153,28 @@ func (r *ProjectResolver) ContinuousDeploy() bool {
 }
 
 // IsDeployed
-func (r *ProjectResolver) EnvsDeployedIn(ctx context.Context, args *struct {
+func (r *ProjectResolver) DeployedIn(ctx context.Context, args *struct {
 	GitHash string
 }) ([]*EnvironmentResolver, error) {
-	fmt.Println("db IsDeployedIn")
 	var environments []*EnvironmentResolver
 	var feature model.Feature
 	var allReleases []model.Release
 
 	// get feature
-	if err := r.DB.Where("project_id = ? and hash = ?").Find(&feature, args.GitHash).Error; err != nil {
+	if err := r.DB.Where("project_id = ? and hash = ?", r.Project.Model.ID.String(), args.GitHash).Find(&feature).Error; err != nil {
 		return []*EnvironmentResolver{}, err
 	}
 
 	// get descendant features to check if they've been deployed too since that implies this one has been deployed too
-	descendantFeatures := []model.Feature{}
-	if err := r.DB.Where("created_at >= ?", feature.Model.CreatedAt).Find(&descendantFeatures).Error; err != nil {
+	features := []model.Feature{}
+	if err := r.DB.Where("created_at >= ? and project_id = ?", feature.Model.CreatedAt, feature.ProjectID.String()).Find(&features).Error; err != nil {
 		return []*EnvironmentResolver{}, err
 	}
 
-	for _, descFeature := range descendantFeatures {
+	for _, tmpFeature := range features {
 		var releases []model.Release
 		// get releases where head_feature_id matches this feature
-		if err := r.DB.Where("head_feature_id = ? and state = ?", descFeature.Model.ID, transistor.GetState("complete")).Find(&releases).Error; err != nil {
+		if err := r.DB.Where("head_feature_id = ? and state = ?", tmpFeature.Model.ID.String(), transistor.GetState("complete")).Find(&releases).Error; err != nil {
 			return []*EnvironmentResolver{}, err
 		}
 
@@ -193,7 +192,7 @@ func (r *ProjectResolver) EnvsDeployedIn(ctx context.Context, args *struct {
 	// find env associated with each environment_id
 	for envID := range uniqueEnvironmentIDs {
 		var tmpEnv model.Environment
-		if err := r.DB.Where("environment_id = ?", envID).Find(&tmpEnv).Error; err != nil {
+		if err := r.DB.Where("id = ?", envID).Find(&tmpEnv).Error; err != nil {
 			return []*EnvironmentResolver{}, err
 		}
 

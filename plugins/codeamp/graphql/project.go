@@ -3,7 +3,6 @@ package graphql_resolver
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	db_resolver "github.com/codeamp/circuit/plugins/codeamp/db"
 	"github.com/codeamp/circuit/plugins/codeamp/model"
@@ -61,11 +60,10 @@ func (r *ProjectResolver) RsaPublicKey() string {
 }
 
 // IsDeployed
-func (r *ProjectResolver) EnvsDeployedIn(ctx context.Context, args *struct {
+func (r *ProjectResolver) DeployedIn(ctx context.Context, args *struct {
 	GitHash string
 }) ([]*EnvironmentResolver, error) {
-	fmt.Println("graphql IsDeployedIn")
-	db_resolvers, err := r.DBProjectResolver.EnvsDeployedIn(ctx, args)
+	db_resolvers, err := r.DBProjectResolver.DeployedIn(ctx, args)
 	if err != nil {
 		return []*EnvironmentResolver{}, err
 	}
